@@ -40,6 +40,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -61,11 +63,14 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     Button playSoundEtape,  stopSoundEtape;
     private TextToSpeech textToSpeech;
     int flagLayout, indexEtape;
+    ArrayList<RecetteSimple> recettes;
+    LinkedList<Integer> historyLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        historyLayout = new LinkedList<>();
         super.onCreate(savedInstanceState);
-        setLayout(R.layout.default_layout);
+        this.setLayout(R.layout.default_layout);
         resultats = "";
         listenning = false;
         indexEtape = 0;
@@ -74,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         initializeTextToSpeech();
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0);
+
     }
 
     private void initializeEventList(){
@@ -164,6 +170,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     private void setLayout(int layout){
         flagLayout = layout;
         setContentView(flagLayout);
+        System.out.println("LAYOUTTTTTTT " + flagLayout);
+        historyLayout.add(flagLayout);
     }
     private String findMenuWord(String[] userPhrase){
         for (int i = 0; i<userPhrase.length; i++) {
@@ -178,6 +186,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 return "choisir";
             } else if (Tools.contains(word,Constantes.VOCAL_ETAPE)){
                 return "étape";
+            } else if (Tools.contains(word,Constantes.VOCAL_PRECEDENT)) {
+                return "précédent";
             }
         }
         return "no menu word found";
@@ -246,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 try {
                     if (response.toString().trim().charAt(0) == '{') {
                         JSONArray jsonArray = new JSONObject(response.toString()).getJSONArray("recettes");
-                        ArrayList<RecetteSimple> recettes = new ArrayList<>();
+                        recettes = new ArrayList<>();
                         for (int i = 0; i < jsonArray.length(); i++) {
                             JSONObject jsonRecette = jsonArray.getJSONObject(i);
                             recettes.add(new RecetteSimple(jsonRecette));
@@ -360,6 +370,25 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     public void speakEtape(){
         textToSpeech.speak(currentEtape.getText().subSequence(0, currentEtape.length()), TextToSpeech.QUEUE_FLUSH,null, null);
     }
+
+    public void navigate(){
+        System.out.println("AVANT SUPPR" + historyLayout.toString());
+        historyLayout.removeLast();
+        System.out.println("APRES SUPPR" + historyLayout.toString());
+        setLayout(historyLayout.getLast());
+        loadByDefault(historyLayout.getLast());
+    }
+
+    public void loadByDefault(int layout){
+        switch(layout){
+            case R.layout.list_recettes :
+                listRecettes = findViewById(R.id.recettes_list);
+                recettesAdapter = new RecettesAdapter(MainActivity.this, recettes);
+                listRecettes.setAdapter(recettesAdapter);
+                initializeEventList();
+                break;
+        }
+    }
     public void choiceAction(String resultat, String wordUser) throws JSONException, IOException {
         String resultat_split[] = resultat.split(" ");
         AssetManager assetManager=getAssets();
@@ -380,11 +409,18 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 if (flagLayout == R.layout.activity_recette) {
                     if (Tools.contains(resultat,"lis")){
                         speakEtape();
+                    } else if (Tools.contains(resultat, "suivant")){
+                        switchEtape(findViewById(R.id.next_etape));
+                    } else if (Tools.contains(resultat, "précédent")){
+                        switchEtape(findViewById(R.id.previous_etape));
                     }
                     lireEtapeX(resultat_split);
                 }
                 break;
 
+            case "précédent":
+                navigate();
+                break;
             default:
                 Vocabulaire vocabulaire = new Vocabulaire(assetManager, wordUser);
                 String motInVoca = vocabulaire.find(resultat_split);
@@ -392,6 +428,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 if (!Tools.equals(motInVoca, "word not found")){
                     System.out.println(wordUser+"_"+motInVoca);
                     setLayout(R.layout.list_recettes);
+                    historyLayout.add(R.layout.list_recettes);
                     reqPost(resultat_split, Tools.chooseCorrectUrl(wordUser));
                 }
                 break;
