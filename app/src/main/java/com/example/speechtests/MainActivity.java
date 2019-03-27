@@ -175,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             } else if (word.contains(Constantes.VOCAL_RECETTE)) {
                 return "recette";
             } else if (word.contains(Constantes.VOCAL_SELECTION)) {
-                return "sélectionne";
+                return "choisir";
             } else if (word.contains((Constantes.VOCAL_ETAPE))){
                 return "étape";
             }
@@ -371,7 +371,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 System.out.println("WORD USER : " + wordUser);
 
                 if (!wordUser.equals("no menu word found")) {
-                    if (wordUser.equals("sélectionne")){
+                    if (wordUser.equals("choisir")){
                         if ((flagLayout == R.layout.list_recettes)&&!recettesAdapter.isEmpty()){
                             for (int i =0; i<recettesAdapter.getCount(); i++){
                                 if (resultat.toLowerCase().trim().contains(recettesAdapter.getItem(i).getNom().toLowerCase().trim())){
