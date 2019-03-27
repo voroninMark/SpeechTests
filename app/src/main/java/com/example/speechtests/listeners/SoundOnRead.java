@@ -15,13 +15,13 @@ public class SoundOnRead extends UtteranceProgressListener {
     @Override
     public void onStart(String utteranceId) {
         target.setFlagSound(1);
-        Toast.makeText(target, "Start", Toast.LENGTH_SHORT).show();
+        System.out.println("start");
     }
 
     @Override
     public void onDone(String utteranceId) {
         target.setFlagSound(0);
-        Toast.makeText(target, "Stop", Toast.LENGTH_SHORT).show();
+        System.out.println("done");
     }
 
     @Override

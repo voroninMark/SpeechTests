@@ -10,6 +10,7 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -41,6 +42,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -62,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     Button playSoundEtape,  stopSoundEtape;
     private TextToSpeech textToSpeech;
     int flagLayout, indexEtape, flagSound;
+    HashMap<String, String> speakBundle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,11 +74,15 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         listenning = false;
         indexEtape = 0;
         flagSound = 0;
+        speakBundle = new HashMap<>();
+        speakBundle.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID");
+        speakBundle.put(TextToSpeech.Engine.KEY_PARAM_STREAM, String.valueOf(AudioManager.STREAM_ALARM));
         doPerms();
         initListener();
         initializeTextToSpeech();
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0);
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,AudioManager.ADJUST_UNMUTE, 0);
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,AudioManager.ADJUST_MUTE, 0);
     }
 
     private void initializeEventList(){
@@ -93,22 +100,44 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         textToSpeech=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
-                if(status != TextToSpeech.ERROR) {
+                if(status == TextToSpeech.SUCCESS){
                     textToSpeech.setLanguage(Locale.FRANCE);
+                    initializeTTSListener();
                 }
             }
         });
     }
+    public void initializeTTSListener(){
+        textToSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override
+            public void onStart(String utteranceId) {
+                System.out.println("john j. keeshan");
+            }
 
+            @Override
+            public void onDone(String utteranceId) {
+                System.out.println("harison johnes");
+            }
+
+            @Override
+            public void onError(String utteranceId) {
+                System.out.println("Tiber cesar");
+            }
+        });
+    }
+    public void startListening(){
+        speechRecognizer.startListening(recognizerIntent);
+    }
+    public void stopListening(){
+        speechRecognizer.cancel();
+    }
     private void initializeEvents(){
         playSoundEtape.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0);
-                textToSpeech.speak(currentEtape.getText().subSequence(0, currentEtape.length()), TextToSpeech.QUEUE_FLUSH,null, null);
+                textToSpeech.speak(currentEtape.getText().toString(), TextToSpeech.QUEUE_FLUSH,speakBundle);
             }
         });
-        textToSpeech.setOnUtteranceProgressListener(new SoundOnRead(this));
         stopSoundEtape.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -360,12 +389,11 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         }
         return false;
     }
-    public void restartListen(){
-        if (flagSound == 0) {
-            audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0);
-            speechRecognizer.startListening(recognizerIntent);
-            audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0);
-        }
+    public void listenWithSound(){
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,AudioManager.ADJUST_UNMUTE, 0);
+        callPopup();
+        speechRecognizer.startListening(recognizerIntent);
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,AudioManager.ADJUST_MUTE, 0);
     }
     public void choiceAction(String resultat, String wordUser) throws JSONException, IOException {
         String resultat_split[] = resultat.split(" ");
@@ -409,8 +437,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         if (Tools.contains(resultat,Constantes.VOCAL_ACTIVATE) && !listenning){
             System.out.println("ECOUTE");
             listenning = true;
-            callPopup();
-            restartListen();
+            listenWithSound();
         } else if(listenning) {
                 String wordUser = this.findMenuWord(resultat_split).toLowerCase().trim();
 
@@ -428,7 +455,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             listenning = false;
             popupWindow.dismiss();
         }
-        restartListen();
+        speechRecognizer.startListening(recognizerIntent);
     }
 
     @Override
