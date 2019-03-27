@@ -350,6 +350,47 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         }
     }
 
+    public boolean isMenuWord(String wordUser){
+        if (!wordUser.equals("no menu word found")){
+            return true;
+        }
+        return false;
+    }
+
+    public void choiceAction(String resultat, String wordUser) throws JSONException, IOException {
+        String resultat_split[] = resultat.split(" ");
+        AssetManager assetManager=getAssets();
+
+        switch (wordUser){
+            case "choisir" :
+                if ((flagLayout == R.layout.list_recettes)&&!recettesAdapter.isEmpty()){
+                    for (int i =0; i<recettesAdapter.getCount(); i++){
+                        if (resultat.toLowerCase().trim().contains(recettesAdapter.getItem(i).getNom().toLowerCase().trim())){
+                            RecetteSimple recetteSimple = recettesAdapter.getItem(i);
+                            loadRecetteComplete(recetteSimple);
+                            break;
+                        }
+                    }
+                }
+                break;
+            case "étape" :
+                if (flagLayout == R.layout.activity_recette) {
+                    lireEtapeX(resultat_split);
+                }
+                break;
+
+            default:
+                Vocabulaire vocabulaire = new Vocabulaire(assetManager, wordUser);
+                String motInVoca = vocabulaire.find(resultat_split);
+                System.out.println("MOT DU VOCABULAIRE : " + motInVoca);
+                if (!motInVoca.equals("word not found")){
+                    System.out.println(wordUser+"_"+motInVoca);
+                    setLayout(R.layout.list_recettes);
+                    reqPost(resultat_split, Tools.chooseCorrectUrl(wordUser));
+                }
+                break;
+        }
+    }
     @Override
     public void onResults(Bundle results) {
         String resultat = transformResultatRecognition(results);
@@ -363,42 +404,19 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             speechRecognizer.startListening(recognizerIntent);
             audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0);
         } else if(listenning) {
-            AssetManager assetManager=getAssets();
-
-            try {
                 String wordUser = this.findMenuWord(resultat_split).toLowerCase().trim();
 
                 System.out.println("WORD USER : " + wordUser);
 
-                if (!wordUser.equals("no menu word found")) {
-                    if (wordUser.equals("choisir")){
-                        if ((flagLayout == R.layout.list_recettes)&&!recettesAdapter.isEmpty()){
-                            for (int i =0; i<recettesAdapter.getCount(); i++){
-                                if (resultat.toLowerCase().trim().contains(recettesAdapter.getItem(i).getNom().toLowerCase().trim())){
-                                    RecetteSimple recetteSimple = recettesAdapter.getItem(i);
-                                    loadRecetteComplete(recetteSimple);
-                                    break;
-                                }
-                            }
-                        }
-                    } else if(wordUser.equals("étape")) {
-                        if (flagLayout == R.layout.activity_recette) {
-                            lireEtapeX(resultat_split);
-                        }
-                    } else {
-                        Vocabulaire vocabulaire = new Vocabulaire(assetManager, wordUser);
-                        String motInVoca = vocabulaire.find(resultat_split);
-                        System.out.println("MOT DU VOCABULAIRE : " + motInVoca);
-                        if (!motInVoca.equals("word not found")){
-                            System.out.println(wordUser+"_"+motInVoca);
-                            setLayout(R.layout.list_recettes);
-                            reqPost(resultat_split, Tools.chooseCorrectUrl(wordUser));
-                        }
+                if (isMenuWord(wordUser)) {
+                    try {
+                        choiceAction(resultat, wordUser);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
-            } catch (IOException | JSONException e) {
-                e.printStackTrace();
-            }
             listenning = false;
             popupWindow.dismiss();
         }
