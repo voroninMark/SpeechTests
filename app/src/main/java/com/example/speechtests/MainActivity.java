@@ -412,9 +412,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     }
 
     public void navigate(){
-        System.out.println("AVANT SUPPR" + historyLayout.toString());
         historyLayout.removeLast();
-        System.out.println("APRES SUPPR" + historyLayout.toString());
         setLayout(historyLayout.getLast());
         loadByDefault(historyLayout.getLast());
     }
@@ -453,6 +451,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                         switchEtape(findViewById(R.id.next_etape));
                     } else if (Tools.contains(resultat, "précédent")){
                         switchEtape(findViewById(R.id.previous_etape));
+                    } else if (Tools.contains(resultat, "stop")){
+                        textToSpeech.stop();
                     }
                     lireEtapeX(resultat_split);
                 }
