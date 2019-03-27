@@ -135,11 +135,14 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     public void stopListening(){
         speechRecognizer.cancel();
     }
+    public void sayText(String phrase){
+        textToSpeech.speak(phrase, TextToSpeech.QUEUE_FLUSH,speakBundle);
+    }
     private void initializeEvents(){
         playSoundEtape.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                textToSpeech.speak(currentEtape.getText().toString(), TextToSpeech.QUEUE_FLUSH,speakBundle);
+                sayText(currentEtape.getText().toString());
             }
         });
         stopSoundEtape.setOnClickListener(new View.OnClickListener() {
@@ -445,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             case "étape" :
                 if (flagLayout == R.layout.activity_recette) {
                     if (Tools.contains(resultat,"lis")){
-                        speakEtape();
+                        sayText(currentEtape.getText().toString());
                     } else if (Tools.contains(resultat, "suivant")){
                         switchEtape(findViewById(R.id.next_etape));
                     } else if (Tools.contains(resultat, "précédent")){
