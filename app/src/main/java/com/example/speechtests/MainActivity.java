@@ -170,13 +170,13 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             String token = userPhrase[i];
             String word = token.toLowerCase().trim();
 
-            if (word.contains(Constantes.VOCAL_INGREDIENT)) {
+            if (Tools.contains(word, Constantes.VOCAL_INGREDIENT)) {
                 return "ingredient";
-            } else if (word.contains(Constantes.VOCAL_RECETTE)) {
+            } else if (Tools.contains(word,Constantes.VOCAL_RECETTE)) {
                 return "recette";
-            } else if (word.contains(Constantes.VOCAL_SELECTION)) {
+            } else if (Tools.contains(word, Constantes.VOCAL_SELECTION)) {
                 return "choisir";
-            } else if (word.contains((Constantes.VOCAL_ETAPE))){
+            } else if (Tools.contains(word,Constantes.VOCAL_ETAPE)){
                 return "étape";
             }
         }
@@ -365,7 +365,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             case "choisir" :
                 if ((flagLayout == R.layout.list_recettes)&&!recettesAdapter.isEmpty()){
                     for (int i =0; i<recettesAdapter.getCount(); i++){
-                        if (resultat.toLowerCase().trim().contains(recettesAdapter.getItem(i).getNom().toLowerCase().trim())){
+                        if (Tools.contains(resultat,recettesAdapter.getItem(i).getNom())){
                             RecetteSimple recetteSimple = recettesAdapter.getItem(i);
                             loadRecetteComplete(recetteSimple);
                             break;
@@ -383,7 +383,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 Vocabulaire vocabulaire = new Vocabulaire(assetManager, wordUser);
                 String motInVoca = vocabulaire.find(resultat_split);
                 System.out.println("MOT DU VOCABULAIRE : " + motInVoca);
-                if (!motInVoca.equals("word not found")){
+                if (!Tools.equals(motInVoca, "word not found")){
                     System.out.println(wordUser+"_"+motInVoca);
                     setLayout(R.layout.list_recettes);
                     reqPost(resultat_split, Tools.chooseCorrectUrl(wordUser));
@@ -396,7 +396,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         String resultat = transformResultatRecognition(results);
         System.out.println(resultat);
         String resultat_split[] = resultat.split(" ");
-        if (resultat.contains(Constantes.VOCAL_ACTIVATE) && !listenning){
+        if (Tools.contains(resultat,Constantes.VOCAL_ACTIVATE) && !listenning){
             System.out.println("ECOUTE");
             listenning = true;
             audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0);
