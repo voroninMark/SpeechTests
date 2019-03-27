@@ -58,5 +58,21 @@ public class Tools {
         }
         return -100;
     }
+
+    public static boolean equals(String firstWord, String secondWord){
+        if (firstWord.toLowerCase().trim().equals(secondWord.toLowerCase().trim())){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean contains(String firstWord, String secondWord){
+        if (firstWord.toLowerCase().trim().contains(secondWord.toLowerCase().trim())){
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 

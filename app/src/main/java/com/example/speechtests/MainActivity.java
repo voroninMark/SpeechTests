@@ -33,6 +33,7 @@ import com.example.speechtests.DO.Recette;
 import com.example.speechtests.DO.RecetteSimple;
 import com.example.speechtests.HTTP.VolleyResponseListener;
 import com.example.speechtests.HTTP.VolleyUtils;
+import com.example.speechtests.listeners.SoundOnRead;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -60,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     Recette currentRecette;
     Button playSoundEtape,  stopSoundEtape;
     private TextToSpeech textToSpeech;
-    int flagLayout, indexEtape;
+    int flagLayout, indexEtape, flagSound;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         resultats = "";
         listenning = false;
         indexEtape = 0;
+        flagSound = 0;
         doPerms();
         initListener();
         initializeTextToSpeech();
@@ -102,9 +104,11 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         playSoundEtape.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0);
                 textToSpeech.speak(currentEtape.getText().subSequence(0, currentEtape.length()), TextToSpeech.QUEUE_FLUSH,null, null);
             }
         });
+        textToSpeech.setOnUtteranceProgressListener(new SoundOnRead(this));
         stopSoundEtape.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -170,13 +174,13 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             String token = userPhrase[i];
             String word = token.toLowerCase().trim();
 
-            if (word.contains(Constantes.VOCAL_INGREDIENT)) {
+            if (Tools.contains(word, Constantes.VOCAL_INGREDIENT)) {
                 return "ingredient";
-            } else if (word.contains(Constantes.VOCAL_RECETTE)) {
+            } else if (Tools.contains(word,Constantes.VOCAL_RECETTE)) {
                 return "recette";
-            } else if (word.contains(Constantes.VOCAL_SELECTION)) {
+            } else if (Tools.contains(word, Constantes.VOCAL_SELECTION)) {
                 return "choisir";
-            } else if (word.contains((Constantes.VOCAL_ETAPE))){
+            } else if (Tools.contains(word,Constantes.VOCAL_ETAPE)){
                 return "étape";
             }
         }
@@ -356,7 +360,13 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         }
         return false;
     }
-
+    public void restartListen(){
+        if (flagSound == 0) {
+            audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0);
+            speechRecognizer.startListening(recognizerIntent);
+            audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0);
+        }
+    }
     public void choiceAction(String resultat, String wordUser) throws JSONException, IOException {
         String resultat_split[] = resultat.split(" ");
         AssetManager assetManager=getAssets();
@@ -365,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             case "choisir" :
                 if ((flagLayout == R.layout.list_recettes)&&!recettesAdapter.isEmpty()){
                     for (int i =0; i<recettesAdapter.getCount(); i++){
-                        if (resultat.toLowerCase().trim().contains(recettesAdapter.getItem(i).getNom().toLowerCase().trim())){
+                        if (Tools.contains(resultat,recettesAdapter.getItem(i).getNom())){
                             RecetteSimple recetteSimple = recettesAdapter.getItem(i);
                             loadRecetteComplete(recetteSimple);
                             break;
@@ -383,7 +393,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 Vocabulaire vocabulaire = new Vocabulaire(assetManager, wordUser);
                 String motInVoca = vocabulaire.find(resultat_split);
                 System.out.println("MOT DU VOCABULAIRE : " + motInVoca);
-                if (!motInVoca.equals("word not found")){
+                if (!Tools.equals(motInVoca, "word not found")){
                     System.out.println(wordUser+"_"+motInVoca);
                     setLayout(R.layout.list_recettes);
                     reqPost(resultat_split, Tools.chooseCorrectUrl(wordUser));
@@ -396,13 +406,11 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         String resultat = transformResultatRecognition(results);
         System.out.println(resultat);
         String resultat_split[] = resultat.split(" ");
-        if (resultat.contains(Constantes.VOCAL_ACTIVATE) && !listenning){
+        if (Tools.contains(resultat,Constantes.VOCAL_ACTIVATE) && !listenning){
             System.out.println("ECOUTE");
             listenning = true;
-            audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0);
             callPopup();
-            speechRecognizer.startListening(recognizerIntent);
-            audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0);
+            restartListen();
         } else if(listenning) {
                 String wordUser = this.findMenuWord(resultat_split).toLowerCase().trim();
 
@@ -420,7 +428,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             listenning = false;
             popupWindow.dismiss();
         }
-        speechRecognizer.startListening(recognizerIntent);
+        restartListen();
     }
 
     @Override
@@ -431,5 +439,13 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     @Override
     public void onEvent(int eventType, Bundle params) {
 
+    }
+
+    public int getFlagSound() {
+        return flagSound;
+    }
+
+    public void setFlagSound(int flagSound) {
+        this.flagSound = flagSound;
     }
 }
