@@ -357,6 +357,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         return false;
     }
 
+    public void speakEtape(){
+        textToSpeech.speak(currentEtape.getText().subSequence(0, currentEtape.length()), TextToSpeech.QUEUE_FLUSH,null, null);
+    }
     public void choiceAction(String resultat, String wordUser) throws JSONException, IOException {
         String resultat_split[] = resultat.split(" ");
         AssetManager assetManager=getAssets();
@@ -375,6 +378,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 break;
             case "étape" :
                 if (flagLayout == R.layout.activity_recette) {
+                    if (Tools.contains(resultat,"lis")){
+                        speakEtape();
+                    }
                     lireEtapeX(resultat_split);
                 }
                 break;
