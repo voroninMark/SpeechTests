@@ -135,8 +135,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     public void stopListening(){
         speechRecognizer.cancel();
     }
-    public void sayText(String phrase){
-        textToSpeech.speak(phrase, TextToSpeech.QUEUE_FLUSH,speakBundle);
+    public void sayText(String phrase) {
+        textToSpeech.speak(phrase, TextToSpeech.QUEUE_ADD,speakBundle);
     }
     private void initializeEvents(){
         playSoundEtape.setOnClickListener(new View.OnClickListener() {
@@ -197,6 +197,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplication().getPackageName());
         speechRecognizer.startListening(recognizerIntent);
     }
@@ -207,22 +208,13 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         System.out.println("LAYOUTTTTTTT " + flagLayout);
         historyLayout.add(flagLayout);
     }
-    private String findMenuWord(String[] userPhrase){
-        for (int i = 0; i<userPhrase.length; i++) {
-            String token = userPhrase[i];
-            String word = token.toLowerCase().trim();
-
-            if (Tools.contains(word, Constantes.VOCAL_INGREDIENT)) {
-                return "ingredient";
-            } else if (Tools.contains(word,Constantes.VOCAL_RECETTE)) {
-                return "recette";
-            } else if (Tools.contains(word, Constantes.VOCAL_SELECTION)) {
-                return "choisir";
-            } else if (Tools.contains(word,Constantes.VOCAL_ETAPE)){
-                return "étape";
-            } else if (Tools.contains(word,Constantes.VOCAL_PRECEDENT)) {
-                return "précédent";
-            }
+    private String findMenuWord(String word){
+        if (Tools.contains(word, Constantes.VOCAL_INGREDIENT)) {
+            return "ingredient";
+        } else if (Tools.contains(word,Constantes.VOCAL_RECETTE)) {
+            return "recette";
+        } else if (Tools.contains(word, Constantes.VOCAL_SELECTION)) {
+            return "choisir";
         }
         return "no menu word found";
     }
@@ -257,7 +249,6 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                         initializeWidgets();
                         initializeEvents();
                         modifyWidgets();
-
                     } else {
                         Toast.makeText(MainActivity.this, response.toString(), Toast.LENGTH_SHORT).show();
                     }
@@ -280,6 +271,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         resumeRecette.setText(currentRecette.getResume());
         initializeList();
         initializeEtape(0);
+        sayText(currentRecette.getNom());
+        sayText(currentRecette.getResume());
     }
     public void reqPost(final String result[], final String URL_POST) throws JSONException {
         Map<String, String> params = Tools.getParams(result);
@@ -325,6 +318,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     }
 
     public void callPopup() {
+        System.out.println("POPUPPPPPPPPPPPPPPPPP");
         LayoutInflater inflater = (LayoutInflater)
                 getSystemService(LAYOUT_INFLATER_SERVICE);
         popupView = inflater.inflate(R.layout.pop_up, null);
@@ -402,7 +396,6 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     }
     public void listenWithSound(){
         audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,AudioManager.ADJUST_UNMUTE, 0);
-        callPopup();
         speechRecognizer.startListening(recognizerIntent);
         audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,AudioManager.ADJUST_MUTE, 0);
     }
@@ -427,6 +420,30 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 break;
         }
     }
+
+
+    public void choicePartialAction(String resultat)  throws JSONException, IOException {
+            if (flagLayout == R.layout.activity_recette) {
+                if (Tools.contains(resultat,"lire")){
+                    sayText(currentEtape.getText().toString());
+                } else if (Tools.contains(resultat, "suivant")){
+                    switchEtape(findViewById(R.id.next_etape));
+                    sayText(currentEtape.getText().toString());
+                } else if (Tools.contains(resultat, "précédent")){
+                    switchEtape(findViewById(R.id.previous_etape));
+                    sayText(currentEtape.getText().toString());
+                } else if (Tools.contains(resultat, "stop")){
+                    textToSpeech.stop();
+                } else if (Tools.contains(resultat,"revenir")){
+                    if (textToSpeech.isSpeaking()){
+                        textToSpeech.stop();
+                    }
+                    navigate();
+                } else if (Tools.contains(resultat,"ingrédient")){
+                    sayText(listIngredients.getText().toString());
+                }
+            }
+    }
     public void choiceAction(String resultat, String wordUser) throws JSONException, IOException {
         String resultat_split[] = resultat.split(" ");
         AssetManager assetManager=getAssets();
@@ -443,24 +460,6 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                     }
                 }
                 break;
-            case "étape" :
-                if (flagLayout == R.layout.activity_recette) {
-                    if (Tools.contains(resultat,"lis")){
-                        sayText(currentEtape.getText().toString());
-                    } else if (Tools.contains(resultat, "suivant")){
-                        switchEtape(findViewById(R.id.next_etape));
-                    } else if (Tools.contains(resultat, "précédent")){
-                        switchEtape(findViewById(R.id.previous_etape));
-                    } else if (Tools.contains(resultat, "stop")){
-                        textToSpeech.stop();
-                    }
-                    lireEtapeX(resultat_split);
-                }
-                break;
-
-            case "précédent":
-                navigate();
-                break;
             default:
                 Vocabulaire vocabulaire = new Vocabulaire(assetManager, wordUser);
                 String motInVoca = vocabulaire.find(resultat_split);
@@ -476,20 +475,16 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     }
     @Override
     public void onResults(Bundle results) {
-        String resultat = transformResultatRecognition(results);
-        System.out.println(resultat);
-        String resultat_split[] = resultat.split(" ");
-        if (Tools.contains(resultat,Constantes.VOCAL_ACTIVATE) && !listenning){
-            System.out.println("ECOUTE");
-            listenning = true;
-            listenWithSound();
-        } else if(listenning) {
-                String wordUser = this.findMenuWord(resultat_split).toLowerCase().trim();
+       String resultat = transformResultatRecognition(results);
+       System.out.println(resultat);
+
+                String wordUser = this.findMenuWord(resultat).toLowerCase().trim();
 
                 System.out.println("WORD USER : " + wordUser);
 
                 if (isMenuWord(wordUser)) {
                     try {
+                        System.out.println("WORD USER");
                         choiceAction(resultat, wordUser);
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -497,15 +492,26 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                         e.printStackTrace();
                     }
                 }
-            listenning = false;
-            popupWindow.dismiss();
-        }
-        speechRecognizer.startListening(recognizerIntent);
+
+       speechRecognizer.startListening(recognizerIntent);
+
+        System.out.println("RESULT : " +resultat);
     }
+
 
     @Override
     public void onPartialResults(Bundle partialResults) {
-
+        ArrayList<String> results = partialResults.getStringArrayList("android.speech.extra.UNSTABLE_TEXT");
+            for(int i =0; i<results.size();i++){
+                System.out.println(results.get(i));
+                try {
+                    choicePartialAction(results.get(i));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
     }
 
     @Override
@@ -519,5 +525,38 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
     public void setFlagSound(int flagSound) {
         this.flagSound = flagSound;
+    }
+
+    /** Called when the activity is about to become visible. */
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    /** Called when the activity has become visible. */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        listenWithSound();
+    }
+
+    /** Called when another activity is taking focus. */
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    /** Called when the activity is no longer visible. */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        stopListening();
+        textToSpeech.stop();
+    }
+
+    /** Called just before the activity is destroyed. */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 }
