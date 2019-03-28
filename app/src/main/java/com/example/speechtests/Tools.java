@@ -74,5 +74,43 @@ public class Tools {
             return false;
         }
     }
+    public static String removeDoublons(String in){
+        String[] in_split = in.split(" ");
+        String out = "";
+        for (int i = 0; i < in_split.length; i++) {
+            if(!contains(out,in_split[i])){
+                out+=" "+in_split[i];
+            }
+        }
+        return out.trim();
+    }
+    public static String removeOccurences(String in,String toRemove){
+        String[] in_split = in.split(" ");
+        String out = "";
+        for (int i = 0; i < in_split.length; i++) {
+            if(!contains(in_split[i],toRemove)){
+                out+=" "+in_split[i];
+            }
+        }
+        return out.trim();
+    }
+    public static double wordByWordCompare(String compared,String comparer){
+        String[] comparer_split = comparer.trim().split(" ");
+        int count = 0;
+        for (int i = 0; i < comparer_split.length; i++) {
+            if(contains(compared,comparer_split[i])){
+                count++;
+            }
+        }
+        return   ((double)count)/((double)comparer_split.length);
+    }
+    public static int indexOfValue(HashMap<Integer,Double> map,double value){
+        for (int i = 0; i < map.size(); i++) {
+            if(map.get(i) == value){
+                return i;
+            }
+        }
+        return -1;
+    }
 }
 

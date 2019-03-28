@@ -42,6 +42,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -451,12 +452,20 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         switch (wordUser){
             case "choisir" :
                 if ((flagLayout == R.layout.list_recettes)&&!recettesAdapter.isEmpty()){
+                    String filtredResult = Tools.removeOccurences(Tools.removeDoublons(resultat),Constantes.VOCAL_SELECTION);
+                    HashMap<Integer,Double> matching = new HashMap<>();
                     for (int i =0; i<recettesAdapter.getCount(); i++){
-                        if (Tools.contains(resultat,recettesAdapter.getItem(i).getNom())){
-                            RecetteSimple recetteSimple = recettesAdapter.getItem(i);
-                            loadRecetteComplete(recetteSimple);
-                            break;
-                        }
+                        System.out.println("comparer : "+recettesAdapter.getItem(i).getNom());
+                        System.out.println("compared : "+filtredResult);
+                        matching.put(i,Tools.wordByWordCompare(filtredResult,recettesAdapter.getItem(i).getNom()));
+                    }
+                    System.out.println(matching);
+                    List<Double> matchingValues = new ArrayList<>(matching.values());
+                    Collections.sort(matchingValues);
+                    Double best_match = matchingValues.get(matchingValues.size()-1);
+                    if(best_match > Constantes.MINIMUM_MATCHING){
+                        RecetteSimple recetteSimple = recettesAdapter.getItem(Tools.indexOfValue(matching,best_match));
+                        loadRecetteComplete(recetteSimple);
                     }
                 }
                 break;
